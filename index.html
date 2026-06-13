@@ -1,98 +1,127 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <title>RESCUE BOT</title>
+<title>RESCUE BOT</title>
 
-    <style>
-        body {
-            background-color: #202020;
-            color: white;
-            text-align: center;
-            font-family: Arial;
-        }
+<style>
+body{
+    background:#202020;
+    color:white;
+    text-align:center;
+    font-family:Arial;
+}
 
-        h1 {
-            color: #00ff88;
-        }
+h1{
+    color:#00ff88;
+}
 
-        button {
-            width: 80px;
-            height: 80px;
-            font-size: 30px;
-            margin: 5px;
-        }
+button{
+    width:90px;
+    height:90px;
+    font-size:30px;
+    margin:5px;
+}
 
-        #overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            z-index: 999;
-        }
-    </style>
+#overlay{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:black;
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:999;
+    font-size:24px;
+}
+</style>
+
 </head>
-
 <body>
 
-<div id="overlay">🔴 Checking ESP32 connection...</div>
+<div id="overlay">
+🔴 Connecting to RESCUE BOT...
+</div>
 
 <h1>🚑 RESCUE BOT</h1>
 
-<button onclick="sendCmd('forward')">↑</button><br>
+<button id="forward">↑</button>
+<br>
 
-<button onclick="sendCmd('left')">←</button>
-<button onclick="sendCmd('open')">📦</button>
-<button onclick="sendCmd('right')">→</button><br>
+<button id="left">←</button>
+<button id="aid">📦</button>
+<button id="right">→</button>
+<br>
 
-<button onclick="sendCmd('backward')">↓</button>
+<button id="backward">↓</button>
 
 <script>
-    const ESP = "http://192.168.1.25"; // change this
 
-    let locked = true;
+const ESP = "http://192.168.4.1";
 
-    async function checkESP() {
-        try {
-            let res = await fetch(`${ESP}/status`);
-            let text = await res.text();
+let connected = false;
 
-            if (text.includes("ONLINE")) {
-                locked = false;
-                document.getElementById("overlay").style.display = "none";
-                enableButtons();
-            }
-        } catch {
-            locked = true;
-            document.getElementById("overlay").style.display = "flex";
-            disableButtons();
+async function checkESP(){
+
+    try{
+        const res = await fetch(`${ESP}/status`);
+        const text = await res.text();
+
+        if(text.includes("ONLINE")){
+            connected = true;
+            document.getElementById("overlay").style.display="none";
         }
     }
-
-    function sendCmd(cmd) {
-        if (locked) return;
-
-        fetch(`${ESP}/${cmd}`)
-            .then(res => res.text())
-            .then(data => console.log(data));
+    catch{
+        connected = false;
+        document.getElementById("overlay").style.display="flex";
     }
+}
 
-    function disableButtons() {
-        document.querySelectorAll("button").forEach(b => b.disabled = true);
-    }
+setInterval(checkESP,3000);
+checkESP();
 
-    function enableButtons() {
-        document.querySelectorAll("button").forEach(b => b.disabled = false);
-    }
+function send(cmd){
+    if(!connected) return;
 
-    setInterval(checkESP, 3000);
-    checkESP();
+    fetch(`${ESP}/${cmd}`)
+    .catch(err=>console.log(err));
+}
+
+function hold(button,cmd){
+
+    button.addEventListener("touchstart",()=>{
+        send(cmd);
+    });
+
+    button.addEventListener("touchend",()=>{
+        send("stop");
+    });
+
+    button.addEventListener("mousedown",()=>{
+        send(cmd);
+    });
+
+    button.addEventListener("mouseup",()=>{
+        send("stop");
+    });
+
+    button.addEventListener("mouseleave",()=>{
+        send("stop");
+    });
+}
+
+hold(document.getElementById("forward"),"forward");
+hold(document.getElementById("backward"),"backward");
+hold(document.getElementById("left"),"left");
+hold(document.getElementById("right"),"right");
+
+document.getElementById("aid").addEventListener("click",()=>{
+    send("open");
+});
+
 </script>
 
 </body>
